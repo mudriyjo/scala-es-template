@@ -17,26 +17,28 @@ object ZioRecap extends ZIOAppDefault {
   }.catchAll(e => ZIO.succeed(s"Catch error ${e}"))
 
   // fiber
-  val calcValue = ZIO.sleep(Duration.fromMillis(1000L)).flatMap(_ => zio.Random.nextIntBetween(0, 100))
-
-    override def run = {
-      val calcPar = (0 to 10).map(_ => calcValue.fork)
-      val calcSeq = (0 to 10).map(_ => calcValue)
-      val a = for {
-        start <- ZIO.succeed(System.nanoTime())
-        res <- ZIO.collectAllPar(calcPar)
-        result <- ZIO.foreach(res)(_.join)
-        end <- ZIO.succeed(System.nanoTime())
-        _ <- zio.Console.printLine(s"par result is: ${result}, time: ${end - start}")
-      } yield ()
-
-      val b = for {
-        start <- ZIO.succeed(System.nanoTime())
-        result <- ZIO.collectAll(calcSeq)
-        end <- ZIO.succeed(System.nanoTime())
-        _ <- zio.Console.printLine(s"seq result is: ${result}, time: ${end - start}")
-      } yield ()
-
-      a.flatMap(_ => b)
-    }
+//  val calcValue = ZIO.sleep(Duration.fromMillis(1000L)).flatMap(_ => zio.Random.nextIntBetween(0, 100))
+//
+//    override def run = {
+//      val calcPar = (0 to 10).map(_ => calcValue.fork)
+//      val calcSeq = (0 to 10).map(_ => calcValue)
+//      val a = for {
+//        start <- ZIO.succeed(System.nanoTime())
+//        res <- ZIO.collectAllPar(calcPar)
+//        result <- ZIO.foreach(res)(_.join)
+//        end <- ZIO.succeed(System.nanoTime())
+//        _ <- zio.Console.printLine(s"par result is: ${result}, time: ${end - start}")
+//      } yield ()
+//
+//      val b = for {
+//        start <- ZIO.succeed(System.nanoTime())
+//        result <- ZIO.collectAll(calcSeq)
+//        end <- ZIO.succeed(System.nanoTime())
+//        _ <- zio.Console.printLine(s"seq result is: ${result}, time: ${end - start}")
+//      } yield ()
+//
+//      a.flatMap(_ => b)
+//    }
+  // dependency
+    override def run = ???
 }
