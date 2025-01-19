@@ -1,6 +1,8 @@
 package com.scconfig
 
-import zio.{Duration, ZIO, ZIOAppDefault}
+import zio.{Duration, Task, ZIO, ZIOAppDefault, ZLayer}
+
+import scala.language.postfixOps
 
 object ZioRecap extends ZIOAppDefault {
 
@@ -39,6 +41,69 @@ object ZioRecap extends ZIOAppDefault {
 //
 //      a.flatMap(_ => b)
 //    }
+
   // dependency
-    override def run = ???
+  case class User(name: String, email: String)
+  class UserNotification(val emailService: EmailService, val userRepository: UserRepository) {
+    def nofify(user: User): Task[Unit] = {
+      for {
+        _ <- emailService.send(user)
+        _ <- userRepository.save(user)
+        res <- ZIO.succeed(s"User notified $user")
+        _ <- zio.Console.printLine(res)
+      } yield ()
+    }
+
+  }
+
+  object UserNotification {
+    val live: ZLayer[EmailService with UserRepository, Nothing, UserNotification] =
+      ZLayer.fromFunction((emailService, userRepository) => UserNotification(emailService, userRepository))
+  }
+
+  class EmailService() {
+    def send(user: User): Task[Unit] = ZIO.succeed(s"User send $user").flatMap(msg => zio.Console.printLine(msg))
+  }
+
+  object EmailService {
+    val live: ZLayer[Any, Nothing, EmailService] =
+      ZLayer.succeed(EmailService())
+  }
+
+  class UserRepository(connectionPool: ConnectionPool) {
+    def save(user: User): Task[Unit] = ZIO.succeed(s"User saved $user").flatMap(msg => zio.Console.printLine(msg))
+  }
+
+  object UserRepository {
+    val live: ZLayer[ConnectionPool, Nothing, UserRepository] =
+      ZLayer.fromFunction((pool) => UserRepository(pool))
+  }
+
+  class ConnectionPool(nConnection: Int) {
+    def getConnection(): Task[Connection] = ZIO.succeed(Connection())
+  }
+
+  object ConnectionPool {
+    def live(nConnection: Int): ZLayer[Any, Nothing, ConnectionPool] =
+      ZLayer.succeed(ConnectionPool(nConnection))
+  }
+
+  case class Connection()
+
+  def notify(user: User): ZIO[UserNotification, Throwable, Unit] = for {
+    notification <- ZIO.service[UserNotification]
+    _ <- notification.nofify(user)
+  } yield()
+
+  val program = for {
+    _ <- notify(User("Alex", "test@test.com"))
+    _ <- notify(User("Jhon", "test2@test.com"))
+  } yield ()
+
+  override def run = program.provide(
+    ConnectionPool.live(5),
+    UserRepository.live,
+    UserNotification.live,
+    EmailService.live
+  )
 }
